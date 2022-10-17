@@ -1,63 +1,83 @@
-from flask import Flask, request, jsonify
-import spacy
-from geopy.geocoders import Nominatim
 import json
+import os
 import random
 
-nlp_de = spacy.load('en_core_web_md')
+from flask import Flask, request
+from geopy.geocoders import Nominatim
+from requests import post
+
 
 app = Flask(__name__)
+endpoint = os.environ.get('LOCATION_DETECTOR_ENDPOINT')
+prediction_url = f'http://{endpoint}/api/v1.0/predictions'
+
 
 @app.route('/')
 def home():
     return 'use /get_loc?text="...." to use this service'
 
+
+def to_request_body(text):
+    payload = {'data': {'names': [], 'ndarray': [text]}}
+    print(f'Prepared detection request payload: {payload}')
+    return payload
+
+
+def get_locations(request_body):
+    try:
+        response = post(prediction_url, json=request_body)
+    except:
+        print(f'Error: Failed to send request to location detector at {prediction_url}')
+        return None
+    try:
+        response_body = response.json()
+        print(f'Received response body: {response_body}')
+    except:
+        print(f'Error: Failed to read response body.')
+        return None
+    locations = response_body['data']['ndarray']
+    print(f'Extracted locations from text: {locations}')
+    return locations
+
+
+def detect_locations(text):
+    request_body = to_request_body(text)
+    locations = get_locations(request_body)
+    return locations
+
+
 @app.route('/get_loc')
 def get_coords():
     text = request.args.get('text')
-    doc = nlp_de(text)
-    print("Analyzing this text:" + doc.text, flush=True)
-
-    locations = []
-    if doc.ents:
-        print("Found the following entities in this text:" + str(doc.ents), flush=True)
-        for ent in doc.ents:
-            if ent.label_ == "GPE" or ent.label_ == "LOC":
-                locations.append(ent.text)        
-        locs_dict = {}
-        if locations:
-            print("Those entities were recognized as locations:" + str(locations), flush=True)
-            geolocator = Nominatim(user_agent="my_app")
-            for idx, location in enumerate(locations):
-                try:
-                    loc = geolocator.geocode(location)
-                    lat = loc.latitude
-                    long = loc.longitude
-                    locs_dict[idx+1] = {"extracted location": location, "generated address": loc.address, "latitude": lat - random.uniform(0.05, 2), "longitude": long + random.uniform(0.05, 2)}
-                    print("found lat & long for this location: " + str(location), flush=True)
-                except:
-                    print("not found lat & long for this location:" + str(location), flush=True)
-            jsonDict = json.dumps(locs_dict)
-        else:
-            print("Not found any location in this text", flush=True)
-            jsonDict = {
-                "1": {
-                    "extracted location": "none",
-                    "generated address": "Brisbane City, Queensland, Australia",
-                    "latitude": 0.4689682 - random.uniform(0.1, 5),
-                    "longitude": -30.0234991 + random.uniform(0.1, 5)
+    locations = detect_locations(text)
+    locs_dict = {}
+    if locations:
+        geolocator = Nominatim(user_agent='my_app')
+        for idx, location in enumerate(locations):
+            try:
+                loc = geolocator.geocode(location)
+                lat = loc.latitude
+                long = loc.longitude
+                locs_dict[idx+1] = {
+                    'extracted location': location,
+                    'generated address': loc.address,
+                    'latitude': lat - random.uniform(0.05, 2),
+                    'longitude': long + random.uniform(0.05, 2)
                 }
-            }
+                print(f'found lat & long for this location: {location}', flush=True)
+            except:
+                print(f'not found lat & long for this location: {location}', flush=True)
+        jsonDict = json.dumps(locs_dict)
     else:
-        print("Not found any location in this text", flush=True)
+        print('Not found any location in this text', flush=True)
         jsonDict = {
-                        "1": {
-                            "extracted mirror location": "none",
-                            "generated address": "Brisbane City, Queensland, Australia",
-                            "latitude": 0.4689682 - random.uniform(0.1, 5),
-                            "longitude": -30.0234991 + random.uniform(0.1, 5)
-                        }
-                    }
+            '1': {
+                'extracted location': 'none',
+                'generated address': 'Brisbane City, Queensland, Australia',
+                'latitude': 0.4689682 - random.uniform(0.1, 5),
+                'longitude': -30.0234991 + random.uniform(0.1, 5)
+            }
+        }
 
     return jsonDict, 200, {'Content-Type': 'application/json; charset=utf-8'}
 

@@ -18,4 +18,17 @@ spec:
         type: MODEL
       name: location-extractor
       replicas: 1
-      shadow: false
+    - componentSpecs:
+        - spec:
+            containers:
+              - image: 'quay.io/mmurakam/location-extractor:v0.1.5'
+                name: location-extractor-shadow
+      graph:
+        children: []
+        endpoint:
+          type: REST
+        name: location-extractor-shadow
+        type: MODEL
+      name: location-extractor-shadow
+      replicas: 1
+      shadow: true
