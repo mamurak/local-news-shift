@@ -28,4 +28,7 @@ spec:
           imagePullPolicy: {{ .Values.localnews.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.locationextractor.ports.containerPort }}
+          env:
+            - name: LOCATION_DETECTOR_ENDPOINT
+              value: 'location-detector:8000/seldon/localnews/location-detector'
 {{ end }}

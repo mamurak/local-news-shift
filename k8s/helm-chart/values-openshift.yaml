@@ -76,8 +76,8 @@ locationextractor:
   service: "on"
   name: location-extractor
   replicaCount: 1
-  image: quay.io/k8snativedev/location_extractor
-  imageTag: openshift
+  image: quay.io/mmurakam/location-extractor
+  imageTag: v0.2.1
   ports:
     containerPort: 5000
     servicePort: 8081

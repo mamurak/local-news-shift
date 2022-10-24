@@ -3,12 +3,17 @@ kind: SeldonDeployment
 metadata:
   name: location-detector
 spec:
+  annotations:
+    seldon.io/istio-gateway: mesh
+    seldon.io/istio-host: location-detector
   name: location-detector
   predictors:
-    - componentSpecs:
+    - annotations:
+        seldon.io/svc-name: location-detector
+      componentSpecs:
         - spec:
             containers:
-              - image: 'quay.io/mmurakam/location-detector:v0.1.0'
+              - image: 'quay.io/mmurakam/location-detector:v0.2.2'
                 name: location-detector
       graph:
         children: []
@@ -16,12 +21,14 @@ spec:
           type: REST
         name: location-detector
         type: MODEL
+      labels:
+        sidecar.istio.io/inject: 'true'
       name: location-detector
       replicas: 1
     - componentSpecs:
         - spec:
             containers:
-              - image: 'quay.io/mmurakam/location-detector:v0.1.0'
+              - image: 'quay.io/mmurakam/location-detector:v0.2.0'
                 name: location-detector-shadow
       graph:
         children: []
@@ -29,6 +36,8 @@ spec:
           type: REST
         name: location-detector-shadow
         type: MODEL
+      labels:
+        sidecar.istio.io/inject: 'true'
       name: location-detector-shadow
       replicas: 1
       shadow: true
