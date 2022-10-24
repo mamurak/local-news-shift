@@ -15,7 +15,7 @@ class LocationDetector:
 
         locations = [
             entity.text for entity in entities
-            if entity.label in ['GPE', 'LOC']
+            if entity.label_ in ['GPE', 'LOC']
         ]
         print(f'Detected locations: {locations}')
         return locations
