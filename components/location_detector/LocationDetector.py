@@ -8,8 +8,10 @@ class LocationDetector:
 
     def predict(self, X, feature_names):
         print(f'Received request with input X: {X}')
+        
         text_features = self.model(str(X[0]))
         print(f'Model returned text: {text_features.text}')
+        
         entities = text_features.ents
         print(f'Model detected entities: {entities}')
 
